@@ -1,11 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Technician, ServiceBox, Schedule, Service, Shift, Team } from '@/types';
+import { Technician, ServiceBox, Schedule, Service, Shift, Team, ServiceStatus } from '@/types';
+
+type AppMode = 'edit' | 'view';
 
 interface AppState {
   technicians: Technician[];
   schedules: Schedule[];
   currentSchedule: Schedule | null;
+  mode: AppMode;
+  
+  // Mode
+  setMode: (mode: AppMode) => void;
   
   // Technicians
   addTechnician: (name: string) => void;
@@ -25,6 +31,7 @@ interface AppState {
   // Services
   addService: (scheduleId: string, boxId: string, service: Omit<Service, 'id'>) => void;
   removeService: (scheduleId: string, boxId: string, serviceId: string) => void;
+  updateServiceStatus: (scheduleId: string, boxId: string, serviceId: string, status: ServiceStatus, completedAt: string) => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -46,6 +53,9 @@ export const useAppStore = create<AppState>()(
       ],
       schedules: [],
       currentSchedule: null,
+      mode: 'edit',
+
+      setMode: (mode) => set({ mode }),
 
       addTechnician: (name) =>
         set((state) => ({
@@ -172,6 +182,30 @@ export const useAppStore = create<AppState>()(
                 boxes: s.boxes.map((b) =>
                   b.id === boxId
                     ? { ...b, services: b.services.filter((srv) => srv.id !== serviceId) }
+                    : b
+                ),
+              };
+            }
+            return s;
+          });
+          const currentSchedule = schedules.find((s) => s.id === scheduleId) || state.currentSchedule;
+          return { schedules, currentSchedule };
+        }),
+
+      updateServiceStatus: (scheduleId, boxId, serviceId, status, completedAt) =>
+        set((state) => {
+          const schedules = state.schedules.map((s) => {
+            if (s.id === scheduleId) {
+              return {
+                ...s,
+                boxes: s.boxes.map((b) =>
+                  b.id === boxId
+                    ? {
+                        ...b,
+                        services: b.services.map((srv) =>
+                          srv.id === serviceId ? { ...srv, status, completedAt } : srv
+                        ),
+                      }
                     : b
                 ),
               };
