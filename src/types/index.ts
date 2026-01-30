@@ -17,10 +17,14 @@ export interface ServiceBox {
   services: Service[];
 }
 
+export type ServiceStatus = 'pendente' | 'concluido' | 'cancelado' | 'reagendado';
+
 export interface Service {
   id: string;
   osNumber: string;
   type: ServiceType;
+  status?: ServiceStatus;
+  completedAt?: string; // HH:mm format
 }
 
 export type ServiceType = 
