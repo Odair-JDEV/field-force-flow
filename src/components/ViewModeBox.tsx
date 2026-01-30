@@ -3,8 +3,9 @@ import { useAppStore } from '@/lib/store';
 import { ServiceBox as ServiceBoxType, ServiceStatus } from '@/types';
 import { ServiceBadge } from './ServiceBadge';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
-import { Box, Check, X, Clock } from 'lucide-react';
+import { Box, Check, X, Clock, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,11 +39,26 @@ const formatTeamName = (box: ServiceBoxType): string => {
 
 export const ViewModeBox = ({ box, scheduleId }: ViewModeBoxProps) => {
   const { updateServiceStatus } = useAppStore();
+  const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
+  const [editedTime, setEditedTime] = useState('');
   const teamName = formatTeamName(box);
 
   const handleStatusChange = (serviceId: string, status: ServiceStatus) => {
     const now = format(new Date(), 'HH:mm');
     updateServiceStatus(scheduleId, box.id, serviceId, status, now);
+  };
+
+  const handleEditTime = (serviceId: string, currentTime: string) => {
+    setEditingTimeId(serviceId);
+    setEditedTime(currentTime);
+  };
+
+  const handleSaveTime = (serviceId: string, currentStatus: ServiceStatus) => {
+    if (editedTime.match(/^\d{2}:\d{2}$/)) {
+      updateServiceStatus(scheduleId, box.id, serviceId, currentStatus, editedTime);
+    }
+    setEditingTimeId(null);
+    setEditedTime('');
   };
 
   return (
@@ -101,7 +117,48 @@ export const ViewModeBox = ({ box, scheduleId }: ViewModeBoxProps) => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <ServiceStatusBadge status={service.status} completedAt={service.completedAt} />
+              <div className="flex items-center gap-2">
+                <ServiceStatusBadge status={service.status} completedAt={service.completedAt} />
+                {service.status && service.status !== 'pendente' && service.completedAt && (
+                  editingTimeId === service.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="time"
+                        value={editedTime}
+                        onChange={(e) => setEditedTime(e.target.value)}
+                        className="h-6 w-24 text-xs bg-secondary/50 border-border/50"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2"
+                        onClick={() => handleSaveTime(service.id, service.status!)}
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2"
+                        onClick={() => setEditingTimeId(null)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-1.5 text-muted-foreground hover:text-foreground"
+                      onClick={() => handleEditTime(service.id, service.completedAt!)}
+                      title="Editar horário"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  )
+                )}
+              </div>
             </div>
           ))
         )}
